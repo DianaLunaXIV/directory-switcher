@@ -4,45 +4,64 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProgramDetectsFolderByName(t *testing.T) {
-	err := os.Mkdir("testDir", 0755)
-	if err != nil {
-		t.Errorf("Failed to create testDir in TestProgramDetectsFolderByName: %v", err)
+func TestProgramRenamesFolderGivenMWDataCurrentlyActive(t *testing.T) {
+	setupTestDirectories("starwind")
+	defer cleanupTestDirectories()
+
+	renameActiveDirectories()
+	cwd, _ := os.Getwd()
+	cwdContents, _ := os.ReadDir(cwd)
+	var containsDirectoriesNamedStarwind bool
+	var directoryNames []string
+	for _, entry := range cwdContents {
+		directoryNames = append(directoryNames, entry.Name())
+		if strings.Contains(entry.Name(), "starwind") {
+			containsDirectoriesNamedStarwind = true
+		}
 	}
-	defer os.RemoveAll("testDir")
-	assert.Equal(t, "testDir", detectFolderByName("testDir"))
+	fmt.Print(directoryNames)
+	assert.False(t, containsDirectoriesNamedStarwind)
 }
 
-func TestProgramCorrectlyCopiesDirectoryIntoTarget(t *testing.T) {
-	os.Mkdir("testTargetDir", 0755)
-	defer os.RemoveAll("testTargetDir")
-	os.MkdirAll("testSourceDir/testSubdir", 0755)
-	os.WriteFile("testSourceDir/testSubdir/testFile1", []byte(""), 0755)
-	defer os.RemoveAll("testSourceDir/testSubdir/testFile1")
+func TestProgramRenamesFolderGivenStarwindDataCurrentlyActive(t *testing.T) {
+	setupTestDirectories("mw")
+	defer cleanupTestDirectories()
 
-	err := copyDirectoryIntoTarget("testSourceDir", "testTargetDir")
-	if err != nil {
-		t.Errorf("Failed to copy: %v", err)
+	renameActiveDirectories()
+	cwd, _ := os.Getwd()
+	cwdContents, _ := os.ReadDir(cwd)
+	var containsDirectoriesNamedMW bool
+	var directoryNames []string
+	for _, entry := range cwdContents {
+		directoryNames = append(directoryNames, entry.Name())
+		if strings.Contains(entry.Name(), "mw") {
+			containsDirectoriesNamedMW = true
+		}
 	}
+	fmt.Print(directoryNames)
+	assert.False(t, containsDirectoriesNamedMW)
+}
 
-	originalDirContents, _ := os.ReadDir("testSourceDir")
-	targetDirContents, _ := os.ReadDir("testTargetDir")
+func setupTestDirectories(inactiveSet string) {
+	os.Mkdir("config", 0777)
+	os.Mkdir("data", 0777)
+	os.Mkdir(inactiveSet+"config", 0777)
+	os.Mkdir(inactiveSet+"data", 0777)
+}
 
-	var originalDirEntries []string
-	var targetDirEntries []string
-
-	fmt.Println("originalDirContents:")
-	contentToEntryHelper(originalDirContents, originalDirEntries)
-
-	fmt.Println("targetDirContents:")
-	contentToEntryHelper(targetDirContents, targetDirEntries)
-
-	assert.Equal(t, originalDirEntries, targetDirEntries)
+func cleanupTestDirectories() {
+	os.RemoveAll("config")
+	os.RemoveAll("data")
+	os.RemoveAll("starwindconfig")
+	os.RemoveAll("starwinddata")
+	os.RemoveAll("mwconfig")
+	os.RemoveAll("mwdata")
 }
 
 func contentToEntryHelper(contents []fs.DirEntry, entries []string) {

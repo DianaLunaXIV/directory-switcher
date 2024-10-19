@@ -3,25 +3,60 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
-	fmt.Println("hello world")
+	fmt.Println("Starting directory rename utility.")
+	renameActiveDirectories()
+	fmt.Println("Rename utility finished.")
 }
 
-func detectFolderByName(name string) string {
-	var output string
-	cwdContents, _ := os.ReadDir(".")
+func renameActiveDirectories() {
+	cwd, _ := os.Getwd()
+	cwdContents, _ := os.ReadDir(cwd)
+
+	var isStarwindActive bool
+	var isMWActive bool
+
 	for _, entry := range cwdContents {
-		if entry.Name() == name {
-			output = entry.Name()
+		if strings.Contains(entry.Name(), "starwind") {
+			isMWActive = true
+			break
+		} else if strings.Contains(entry.Name(), "mw") {
+			isStarwindActive = true
+			break
 		}
 	}
 
-	return output
-}
+	if isStarwindActive {
+		fmt.Printf("Starwind currently active, switching to Morrowind")
+		for _, entry := range cwdContents {
+			if entry.Name() == "data" || entry.Name() == "config" {
+				os.Rename(entry.Name(), "starwind"+entry.Name())
+			}
+			if entry.Name() == "mwdata" {
+				os.Rename(entry.Name(), "data")
+			}
+			if entry.Name() == "mwconfig" {
+				os.Rename(entry.Name(), "config")
+			}
+		}
+	} else if isMWActive {
+		fmt.Printf("Morrowind currently active, switching to Starwind")
+		for _, entry := range cwdContents {
+			if entry.Name() == "data" || entry.Name() == "config" {
+				os.Rename(entry.Name(), "mw"+entry.Name())
+			}
+			if entry.Name() == "starwinddata" {
+				os.Rename(entry.Name(), "data")
+			}
+			if entry.Name() == "starwindconfig" {
+				os.Rename(entry.Name(), "config")
+			}
 
-func copyDirectoryIntoTarget(sourceDirectory string, targetDirectory string) error {
-	sourceFilesystem := os.DirFS(sourceDirectory)
-	return os.CopyFS(targetDirectory, sourceFilesystem)
+		}
+	} else {
+		fmt.Printf("Doing nothing.")
+	}
 }
